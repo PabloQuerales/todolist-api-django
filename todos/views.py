@@ -2,27 +2,35 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 
 from .models import Todo
 from .serializers import TodoSerializer
 
 
 class TodoListCreateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
-        todos = Todo.objects.all()
+        todos = Todo.objects.filter(user=request.user)
         serializer = TodoSerializer(todos, many=True)
         return Response(serializer.data)
 
     def post(self, request):
         serializer = TodoSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class TodoDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     def get_object(self, pk):
-        return get_object_or_404(Todo, pk=pk)
+        return get_object_or_404(
+            Todo,
+            pk=pk,
+            user=self.request.user
+        )
+
 
     def get(self, request, pk):
         todo = self.get_object(pk)
